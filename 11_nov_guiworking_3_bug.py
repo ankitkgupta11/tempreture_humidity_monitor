@@ -14,6 +14,36 @@ import csv
 from tkinter import filedialog
 import os
 
+
+
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import ttk
+from tkinter import Menu
+
+# ... (all your existing imports and functions)
+
+def create_file_menu():
+    file_menu = Menu(menu_bar, tearoff=0)
+    file_menu.add_command(label="New File", command=new_file)
+    file_menu.add_command(label="Open", command=open_file)
+    file_menu.add_command(label="Save", command=save_file)
+    file_menu.add_separator()
+    file_menu.add_command(label="Exit", command=close_window)
+    return file_menu
+
+def create_edit_menu():
+    edit_menu = Menu(menu_bar, tearoff=0)
+    # Add Edit menu options here
+    return edit_menu
+
+def new_file():
+    messagebox.showinfo("New File", "Create a new file...")
+
+
+
+
+
 def close_window():
     result = messagebox.askquestion("Close", "Are you sure you want to close?")
     if result == "yes":
@@ -31,8 +61,7 @@ def toggle_connection():
     global selected_option
 
     selected_com = selected_com_var.get()
-    selected_file = selected_file_var.get()
-    selected_option = selected_option_var.get()
+
 
     
     if not selected_com:  # Check if a COM port is selected
@@ -63,8 +92,7 @@ def toggle_connection():
             #selected_com_var.set("Select COM")  # Reset the dropdown to "Select COM"
             com_dropdown.set("Select COM")  # Set default option to "Select COM"
             # Add your serial communication code here
-            selected_file_var.set("Select File")  # Reset the file dropdown to "Select File"
-            selected_option_var.set("Select Option")  # Reset the option dropdown to "Select Option"
+
             
             message_var.set("Disconnected from COM Port")  # Show disconnected message
             connect_button.config(text="Connect")
@@ -88,31 +116,7 @@ title_frame.pack(pady=10)
 title_label = ttk.Label(title_frame, text="                                                  Tempreture and Humidity Monitor                                             ", background="blue", foreground="white", font=("Helvetica", 20, "bold"))
 title_label.grid(row=0, column=0, columnspan=4, padx=10)
 
-# Create a frame for file and option selection
-file_option_frame = ttk.Frame(root)
-file_option_frame.pack()
 
-# Create a label for file selection
-file_label = ttk.Label(file_option_frame, text="Select File:", font=("Helvetica", 14))
-file_label.grid(row=0, column=0, padx=5)
-
-# Create a variable to store the selected file
-selected_file_var = tk.StringVar(root)
-
-# Create a file dropdown for file selection
-file_dropdown = ttk.Combobox(file_option_frame, textvariable=selected_file_var, values=["New", "Open", "Save"], font=("Helvetica", 14), state="readonly")
-file_dropdown.grid(row=0, column=1, padx=5)
-
-# Create a label for option selection
-option_label = ttk.Label(file_option_frame, text="Select Option:", font=("Helvetica", 14))
-option_label.grid(row=0, column=2, padx=5)
-
-# Create a variable to store the selected option
-selected_option_var = tk.StringVar(root)
-
-# Create an option dropdown for option selection
-option_dropdown = ttk.Combobox(file_option_frame, textvariable=selected_option_var, values=["Option 1", "Option 2", "Option 3", "Option 4"], font=("Helvetica", 14), state="readonly")
-option_dropdown.grid(row=0, column=3, padx=5)
 
 # Get available COM ports
 com_ports = list_ports.comports()
@@ -235,9 +239,9 @@ for i in range(8):
                 # Draw alarm indicators (circles) next to the valve 1 temperature and humidity slots
             # Draw alarm indicators (circles) before the valve 1 temperature and humidity slots
             # Draw alarm indicators (circles) before the valve 1 temperature and humidity slots
-            if i == 0:
+            for i in range(8): 
                 valve_frame = ttk.Frame(frame)
-                col = i % 4
+                col = i % 4+1
                 row = i // 4
                 valve_frame.grid(row=row, column=col, padx=20, pady=10, sticky="nw")
 
@@ -263,6 +267,8 @@ def continuous_reading_thread():
         read_valve_data()
         time.sleep(2)  # Adjust the interval (in seconds) as needed
     # Function to read valve data from Modbus device
+
+
 def read_valve_data():
         if not selected_com_var.get():
             messagebox.showerror("Error", "COM port is not selected.")
@@ -314,5 +320,55 @@ def send_read_query_to_modbus(selected_com):
 
 
 
+def save_file():
+    try:
+        file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
+        if file_path:
+            with open(file_path, 'w', newline='') as file:
+                writer = csv.writer(file)
+                # Writing the header row
+                header = ["Valve", "Temperature", "Humidity"]
+                writer.writerow(header)
+
+                # Writing the data rows
+                for i in range(8):
+                    valve_num = i + 1
+                    temperature = start_time_vars[i].get()
+                    humidity = on_duration_vars[i].get()
+                    row = [f"Valve {valve_num}", temperature, humidity]
+                    writer.writerow(row)
+            messagebox.showinfo("Save File", f"Data saved to {file_path}")
+    except Exception as e:
+        messagebox.showerror("Save Error", f"An error occurred while saving the file: {e}")
+
+
+
+def open_file():
+    try:
+        file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        if file_path:
+            with open(file_path, 'r') as file:
+                csv_reader = csv.reader(file)
+                # Skip header row
+                next(csv_reader)
+                for i, row in enumerate(csv_reader):
+                    valve_num, temperature, humidity = row
+                    start_time_vars[i].set(temperature)
+                    on_duration_vars[i].set(humidity)
+            messagebox.showinfo("Open File", f"Data loaded from {file_path}")
+    except Exception as e:
+        messagebox.showerror("Open Error", f"An error occurred while opening the file: {e}")
+
+
+
+
+menu_bar = Menu(root)
+file_menu = create_file_menu()
+edit_menu = create_edit_menu()
+
+menu_bar.add_cascade(label="File", menu=file_menu)
+menu_bar.add_cascade(label="Edit", menu=edit_menu)
+
+root.config(menu=menu_bar)
 
 root.mainloop()

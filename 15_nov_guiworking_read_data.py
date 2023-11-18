@@ -14,6 +14,55 @@ import csv
 from tkinter import filedialog
 import os
 
+
+
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import ttk
+from tkinter import Menu
+
+# ... (all your existing imports and functions)
+
+def create_file_menu():
+    file_menu = Menu(menu_bar, tearoff=0)
+    file_menu.add_command(label="New File", command=new_file)
+    file_menu.add_command(label="Open", command=open_file)
+    file_menu.add_command(label="Save", command=save_file)
+    file_menu.add_separator()
+    file_menu.add_command(label="Exit", command=close_window)
+    return file_menu
+
+def create_edit_menu():
+    edit_menu = Menu(menu_bar, tearoff=0)
+    edit_menu.add_command(label="Start Read", command=start_reading)
+    # Add other Edit menu options here
+    return edit_menu
+
+# Function to perform continuous reading in a separate thread
+def start_reading():
+    try:
+        if not selected_com_var.get():
+            raise ValueError("COM port is not selected. Please select a COM port.")
+
+        # Start reading from Modbus (you can put your reading logic here)
+        start_continuous_reading_thread()
+        messagebox.showinfo("Start Read", "Reading from Modbus has started.")
+
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+def slave_setting():
+    slave_menu = Menu(menu_bar, tearoff=0)
+    # Add Edit menu options here
+    return slave_menu
+
+def new_file():
+    messagebox.showinfo("New File", "Create a new file...")
+
+
+
+
+
 def close_window():
     result = messagebox.askquestion("Close", "Are you sure you want to close?")
     if result == "yes":
@@ -31,8 +80,7 @@ def toggle_connection():
     global selected_option
 
     selected_com = selected_com_var.get()
-    selected_file = selected_file_var.get()
-    selected_option = selected_option_var.get()
+
 
     
     if not selected_com:  # Check if a COM port is selected
@@ -55,7 +103,7 @@ def toggle_connection():
             connected = True
 
             # Start a thread for continuous reading
-            start_continuous_reading_thread()
+            #start_continuous_reading_thread()
 
         else:
             # Close the COM port
@@ -63,8 +111,7 @@ def toggle_connection():
             #selected_com_var.set("Select COM")  # Reset the dropdown to "Select COM"
             com_dropdown.set("Select COM")  # Set default option to "Select COM"
             # Add your serial communication code here
-            selected_file_var.set("Select File")  # Reset the file dropdown to "Select File"
-            selected_option_var.set("Select Option")  # Reset the option dropdown to "Select Option"
+
             
             message_var.set("Disconnected from COM Port")  # Show disconnected message
             connect_button.config(text="Connect")
@@ -88,31 +135,7 @@ title_frame.pack(pady=10)
 title_label = ttk.Label(title_frame, text="                                                  Tempreture and Humidity Monitor                                             ", background="blue", foreground="white", font=("Helvetica", 20, "bold"))
 title_label.grid(row=0, column=0, columnspan=4, padx=10)
 
-# Create a frame for file and option selection
-file_option_frame = ttk.Frame(root)
-file_option_frame.pack()
 
-# Create a label for file selection
-file_label = ttk.Label(file_option_frame, text="Select File:", font=("Helvetica", 14))
-file_label.grid(row=0, column=0, padx=5)
-
-# Create a variable to store the selected file
-selected_file_var = tk.StringVar(root)
-
-# Create a file dropdown for file selection
-file_dropdown = ttk.Combobox(file_option_frame, textvariable=selected_file_var, values=["New", "Open", "Save"], font=("Helvetica", 14), state="readonly")
-file_dropdown.grid(row=0, column=1, padx=5)
-
-# Create a label for option selection
-option_label = ttk.Label(file_option_frame, text="Select Option:", font=("Helvetica", 14))
-option_label.grid(row=0, column=2, padx=5)
-
-# Create a variable to store the selected option
-selected_option_var = tk.StringVar(root)
-
-# Create an option dropdown for option selection
-option_dropdown = ttk.Combobox(file_option_frame, textvariable=selected_option_var, values=["Option 1", "Option 2", "Option 3", "Option 4"], font=("Helvetica", 14), state="readonly")
-option_dropdown.grid(row=0, column=3, padx=5)
 
 # Get available COM ports
 com_ports = list_ports.comports()
@@ -152,14 +175,16 @@ message_label = tk.Label(root, textvariable=message_var, font=("Helvetica", 14, 
 message_label.pack()
 
 #-----------------------------------------------//
+def create_circle(canvas, color):
+    canvas.create_oval(4, 4, 20, 20, fill=color, outline="black")
 
 # Create a frame for valve data
 frame = ttk.Frame(root)
 frame.pack(fill=tk.BOTH, expand=True)
 
-# Create lists to store start time and on duration values for each valve
-start_time_vars = []
-on_duration_vars = []
+# Create lists to Tempreture and Humidity values for each valve
+tempreture_vars = []
+humidity_vars = []
 
 # Create a list to store valve data
 valve_data = []
@@ -176,7 +201,7 @@ valve_labels = {
 
          }
 
-        # Create 2 text entry boxes for each valve: Start Time and On Duration
+        # Create 2 text entry boxes for each valve: Tempreture and Humidity
 entry_boxes = []
 for i in range(8): 
             valve_frame = ttk.Frame(frame)
@@ -193,27 +218,38 @@ for i in range(8):
             separator_line = ttk.Separator(valve_frame, orient=tk.HORIZONTAL)
             separator_line.grid(row=1, column=0, columnspan=2, sticky="ew")
 
-            start_time_label = tk.Label(valve_frame, text="Tempreture:", font=("Helvetica", 14))
-            start_time_label.grid(row=2, column=0)
-            start_time_var = tk.StringVar()  # Variable to store the value of Start Time
-            start_time_entry = tk.Entry(valve_frame, width=10, font=("Helvetica", 14), textvariable=start_time_var,state="readonly")  # Limit the entry box to 10 characters
-            start_time_entry.grid(row=2, column=1)
-            start_time_vars.append(start_time_var)  # Append to the start time list
-            # Set default values for the StringVar variables
-            start_time_var.set("0")
+            # Add canvas for temperature and humidity indicators
+            canvas_temp = tk.Canvas(valve_frame, width=20, height=20, bg="white")
+            canvas_temp.grid(row=2, column=0, padx=(10, 0), pady=5)  # Adjusted padding to give space
 
-            on_duration_label = tk.Label(valve_frame, text="Humidity:", font=("Helvetica", 14))
-            on_duration_label.grid(row=3, column=0)
-            on_duration_var = tk.StringVar()  # Variable to store the value of On Duration
-            on_duration_entry = tk.Entry(valve_frame, width=10, font=("Helvetica", 14), textvariable=on_duration_var,state="readonly")  # Limit the entry box to 10 characters
-            on_duration_entry.grid(row=3, column=1)
-            on_duration_vars.append(on_duration_var)  # Append to the on duration list
+            create_circle(canvas_temp, "red")  # Creating temperature circle
+            tempreture_label = tk.Label(valve_frame, text="Tempreture:", font=("Helvetica", 14))
+            tempreture_label.grid(row=2, column=1)
+            tempreture_var = tk.StringVar()  # Variable to store the value of Tempreture
+            tempreture_entry = tk.Entry(valve_frame, width=10, font=("Helvetica", 14), textvariable=tempreture_var,state="readonly")  # Limit the entry box to 10 characters
+            tempreture_entry.grid(row=2, column=2)
+            tempreture_vars.append(tempreture_var)  # Append to the tempreture list
             # Set default values for the StringVar variables
-            on_duration_var.set("0")
+            tempreture_var.set("0")
 
-            # Append the values of start_time_var and on_duration_var to the list
-            valve_data.append(start_time_var)
-            valve_data.append(on_duration_var)
+            # Add canvas for temperature and humi
+            canvas_humidity = tk.Canvas(valve_frame, width=20, height=20, bg="white")
+            canvas_humidity.grid(row=3, column=0, padx=(10, 0), pady=5)  # Adjusted padding to give space
+
+            humidity_label = tk.Label(valve_frame, text="Humidity:", font=("Helvetica", 14))
+            humidity_label.grid(row=3, column=1)          
+            create_circle(canvas_humidity, "green")  # Creating humidity circle
+            humidity_var = tk.StringVar()  # Variable to store the value of On Duration
+            humidity_entry = tk.Entry(valve_frame, width=10, font=("Helvetica", 14), textvariable=humidity_var,state="readonly")  # Limit the entry box to 10 characters
+            humidity_entry.grid(row=3, column=2)
+            humidity_vars.append(humidity_var)  # Append to the on duration list
+            # Set default values for the StringVar variables
+            humidity_var.set("0")
+
+            # Append the values of tempreture_var and humidity_var to the list
+            valve_data.append(tempreture_var)
+            valve_data.append(humidity_var)
+
             
             # Function to validate and limit the input to numeric values only within the range of 1 to 65350
             def validate_numeric_input(var, new_value):
@@ -228,30 +264,11 @@ for i in range(8):
 
             # Register the validation function to the entry boxes
             vcmd = root.register(validate_numeric_input)
-            start_time_entry.config(validate="key", validatecommand=(vcmd, start_time_var, "%P"))
-            on_duration_entry.config(validate="key", validatecommand=(vcmd, on_duration_var, "%P"))
+            tempreture_entry.config(validate="key", validatecommand=(vcmd, tempreture_var, "%P"))
+            humidity_entry.config(validate="key", validatecommand=(vcmd, humidity_var, "%P"))
 
 
-                # Draw alarm indicators (circles) next to the valve 1 temperature and humidity slots
-            # Draw alarm indicators (circles) before the valve 1 temperature and humidity slots
-            # Draw alarm indicators (circles) before the valve 1 temperature and humidity slots
-            if i == 0:
-                valve_frame = ttk.Frame(frame)
-                col = i % 4
-                row = i // 4
-                valve_frame.grid(row=row, column=col, padx=20, pady=10, sticky="nw")
 
-                canvas_temp = tk.Canvas(valve_frame, width=30, height=30, bg="white")
-                canvas_temp.grid(row=2, column=0, padx=5, pady=5)
-
-                # Draw circle for temperature alarm indicator
-                canvas_temp.create_oval(6, 6, 30, 30, fill="red", outline="black")
-
-                canvas_humidity = tk.Canvas(valve_frame, width=30, height=30, bg="white")
-                canvas_humidity.grid(row=3, column=0, padx=5, pady=5)
-
-                # Draw circle for humidity alarm indicator
-                canvas_humidity.create_oval(6, 6, 30, 30, fill="green", outline="black")
 
 # Function to start a thread for continuous reading
 def start_continuous_reading_thread():
@@ -263,6 +280,8 @@ def continuous_reading_thread():
         read_valve_data()
         time.sleep(2)  # Adjust the interval (in seconds) as needed
     # Function to read valve data from Modbus device
+
+
 def read_valve_data():
         if not selected_com_var.get():
             messagebox.showerror("Error", "COM port is not selected.")
@@ -288,12 +307,12 @@ def update_gui_with_valve_data():
         global valve_data_to_write
 
         for i in range(8):  # Update the GUI elements with the received data
-            start_time_var = start_time_vars[i]  # Accessing the start time variable for the current valve
-            on_duration_var = on_duration_vars[i]  # Accessing the on duration variable for the current valve
+            tempreture_var = tempreture_vars[i]  # Accessing the tempreture time variable for the current valve
+            humidity_var = humidity_vars[i]  # Accessing the humidity variable for the current valve
 
             # Set the GUI variables with the received valve data
-            start_time_var.set(str(valve_data_to_write[i * 2])) # Update start time for current valve
-            on_duration_var.set(str(valve_data_to_write[i * 2 + 1]))  # Update on duration for current valve
+            tempreture_var.set(str(valve_data_to_write[i * 2])) # Update tempreture time for current valve
+            humidity_var.set(str(valve_data_to_write[i * 2 + 1]))  # Update humidity for current valve
 
 def send_read_query_to_modbus(selected_com):
         ser = serial.Serial(port=selected_com, baudrate=115200, bytesize=8, parity='N', stopbits=1, xonxoff=0)
@@ -314,5 +333,51 @@ def send_read_query_to_modbus(selected_com):
 
 
 
+def save_file():
+    try:
+        file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
+        if file_path:
+            with open(file_path, 'w', newline='') as file:
+                writer = csv.writer(file)
+                # Writing the data rows
+                for i in range(8):
+                    temperature = tempreture_vars[i].get()
+                    humidity = humidity_vars[i].get()
+                    row = [temperature, humidity]
+                    writer.writerow(row)
+            messagebox.showinfo("Save File", f"Data saved to {file_path}")
+    except Exception as e:
+        messagebox.showerror("Save Error", f"An error occurred while saving the file: {e}")
+
+
+
+def open_file():
+    try:
+        file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+        if file_path:
+            with open(file_path, 'r') as file:
+                csv_reader = csv.reader(file)
+                # Skip header row
+                for i, row in enumerate(csv_reader):
+                    temperature, humidity = row
+                    tempreture_vars[i].set(temperature)
+                    humidity_vars[i].set(humidity)
+            messagebox.showinfo("Open File", f"Data loaded from {file_path}")
+    except Exception as e:
+        messagebox.showerror("Open Error", f"An error occurred while opening the file: {e}")
+
+
+
+
+menu_bar = Menu(root)
+file_menu = create_file_menu()
+edit_menu = create_edit_menu()
+slave_menu=slave_setting()
+
+menu_bar.add_cascade(label="File", menu=file_menu)
+menu_bar.add_cascade(label="Edit", menu=edit_menu)
+menu_bar.add_cascade(label="Slave Setting", menu=slave_menu)
+
+root.config(menu=menu_bar)
 
 root.mainloop()

@@ -312,7 +312,27 @@ def send_read_query_to_modbus(selected_com):
             ser.close()
             master.close()
 
+# Function to save the valve data to a CSV file
+def save_to_csv():
+    filename = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
+    if filename:
+        with open(filename, 'w', newline='') as file:
+            writer = csv.writer(file)
+            # Writing the headers
+            writer.writerow(["Valve", "Temperature", "Humidity"])
+            # Writing the valve data
+            for i in range(8):
+                valve = valve_labels.get(i, "Valve " + str(i + 1))
+                temperature = start_time_vars[i].get()
+                humidity = on_duration_vars[i].get()
+                writer.writerow([valve, temperature, humidity])
+        messagebox.showinfo("Success", "Valve data saved to CSV file.")
+    else:
+        messagebox.showinfo("Info", "No file selected.")
 
+# Associate the save_to_csv function with the "Save" option in the dropdown
+file_dropdown['values'] = ["New", "Open", "Save"]
+file_dropdown.bind("<<ComboboxSelected>>", lambda event: save_to_csv() if file_dropdown.get() == "Save" else None)
 
 
 root.mainloop()
